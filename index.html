@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Examen Panamá">
+<meta name="theme-color" content="#003580">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Examen Nacionalidad Panameña</title>
+<style>
+  :root {
+    --azul:#003580; --azul2:#0047b3; --rojo:#c0001b; --rojo2:#e6001f;
+    --claro:#eef3fb; --verde:#15803d; --verde-bg:#dcfce7; --rojo-bg:#fee2e2;
+    --gris:#6b7280; --sombra:0 2px 12px rgba(0,53,128,.10);
+  }
+  * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+  html,body { height:100%; width:100%; font-family:'Inter',system-ui,sans-serif; background:var(--claro); color:#1e293b; overscroll-behavior:none; }
+
+  /* ─── PANTALLAS ─── */
+  .pant { display:none; min-height:100vh; padding:16px; padding-bottom:32px; }
+  .pant.on { display:block; }
+  .wrap { max-width:520px; margin:0 auto; }
+
+  /* ─── LOGIN ─── */
+  .login-outer {
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    background: linear-gradient(160deg, #001f4d 0%, #003580 50%, #00214d 100%);
+  }
+  .login-box {
+    background:white; border-radius:24px; padding:36px 28px 32px;
+    width:100%; max-width:400px;
+    box-shadow:0 20px 60px rgba(0,0,0,.35);
+  }
+  .login-top { text-align:center; margin-bottom:28px; }
+  .login-flag { font-size:52px; margin-bottom:10px; }
+  .login-title { font-size:20px; font-weight:900; color:var(--azul); letter-spacing:-.3px; }
+  .login-sub { font-size:12.5px; color:var(--gris); margin-top:5px; line-height:1.5; }
+
+  .campo { margin-bottom:16px; }
+  .campo label { display:block; font-size:12px; font-weight:700; color:#374151; margin-bottom:6px; text-transform:uppercase; letter-spacing:.5px; }
+  .campo input {
+    width:100%; padding:13px 16px; border:2px solid #e2e8f0; border-radius:12px;
+    font-size:15px; font-family:inherit; color:#1e293b; outline:none;
+    transition:border-color .2s;
+  }
+  .campo input:focus { border-color:var(--azul); }
+
+  .btn-login {
+    width:100%; padding:15px; background:linear-gradient(135deg,var(--azul),var(--azul2));
+    color:white; border:none; border-radius:13px; font-size:15px; font-weight:800;
+    cursor:pointer; font-family:inherit; box-shadow:0 5px 18px rgba(0,53,128,.35);
+    margin-top:4px; transition:transform .1s;
+  }
+  .btn-login:active { transform:scale(.98); }
+  .btn-login:disabled { background:#cbd5e1; box-shadow:none; cursor:not-allowed; }
+
+  .login-error {
+    background:var(--rojo-bg); color:var(--rojo); border-radius:10px;
+    padding:10px 14px; font-size:13px; font-weight:600; margin-top:14px;
+    text-align:center; display:none;
+  }
+  .login-spinner { display:none; text-align:center; margin-top:14px; font-size:13px; color:var(--gris); }
+
+  .login-footer { text-align:center; margin-top:22px; font-size:11.5px; color:#9ca3af; }
+
+  /* ─── MENÚ ─── */
+  .hero {
+    background:linear-gradient(150deg,var(--azul) 0%,var(--azul2) 100%);
+    border-radius:22px; padding:28px 24px 24px; text-align:center; color:white; margin-bottom:16px;
+  }
+  .hero-flag { font-size:52px; margin-bottom:9px; }
+  .hero-title { font-size:20px; font-weight:900; letter-spacing:-.3px; }
+  .hero-sub { font-size:12px; opacity:.78; margin-top:6px; line-height:1.5; }
+  .hero-user { display:inline-block; background:rgba(255,255,255,.18); border-radius:20px; padding:4px 14px; font-size:12px; font-weight:700; margin-top:8px; }
+
+  .btn-logout { float:right; background:rgba(255,255,255,.15); border:1.5px solid rgba(255,255,255,.3); color:white; border-radius:10px; padding:5px 12px; font-size:11px; font-weight:700; cursor:pointer; font-family:inherit; }
+
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .stat { background:white; border-radius:14px; padding:14px 10px; text-align:center; box-shadow:var(--sombra); }
+  .stat-icon { font-size:20px; }
+  .stat-n { font-size:25px; font-weight:900; color:var(--azul); line-height:1.1; }
+  .stat-l { font-size:10.5px; color:var(--gris); font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-top:2px; }
+
+  .filtro-card { background:white; border-radius:14px; padding:15px; margin-bottom:14px; box-shadow:var(--sombra); }
+  .filtro-titulo { font-size:12.5px; font-weight:800; color:var(--azul); margin-bottom:10px; }
+  .filtros { display:flex; flex-wrap:wrap; gap:7px; }
+  .f-btn { padding:7px 12px; border-radius:20px; border:2px solid #e2e8f0; background:white; color:#475569; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .18s; }
+  .f-btn.on { background:var(--azul); border-color:var(--azul); color:white; }
+
+  .btn-start { width:100%; padding:16px; background:linear-gradient(135deg,var(--rojo),var(--rojo2)); color:white; border:none; border-radius:15px; font-size:16px; font-weight:900; cursor:pointer; font-family:inherit; box-shadow:0 5px 18px rgba(192,0,27,.38); transition:transform .1s; }
+  .btn-start:active { transform:scale(.98); }
+
+  /* ─── EXAMEN ─── */
+  .ex-header { background:linear-gradient(135deg,var(--azul),var(--azul2)); border-radius:15px; padding:14px 18px; margin-bottom:11px; color:white; display:flex; justify-content:space-between; align-items:center; }
+  .ex-lbl { font-size:10.5px; opacity:.72; font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+  .ex-val { font-size:17px; font-weight:800; margin-top:1px; }
+  .ex-cat { display:inline-block; padding:3px 9px; border-radius:20px; background:rgba(255,255,255,.18); font-size:11px; font-weight:700; margin-top:4px; }
+  .crono { font-size:23px; font-weight:900; font-variant-numeric:tabular-nums; }
+
+  .barra-wrap { background:#cdd5ea; border-radius:10px; height:7px; margin-bottom:13px; overflow:hidden; }
+  .barra-fill { height:100%; background:linear-gradient(90deg,var(--azul),var(--rojo)); border-radius:10px; transition:width .4s ease; }
+
+  .q-card { background:white; border-radius:16px; padding:20px; margin-bottom:11px; box-shadow:var(--sombra); border-left:5px solid var(--azul); }
+  .q-num { font-size:10.5px; font-weight:800; color:var(--azul); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+  .q-txt { font-size:15px; font-weight:700; line-height:1.55; }
+
+  .opts { display:flex; flex-direction:column; gap:9px; margin-bottom:12px; }
+  .opt { background:white; border:2px solid #e2e8f0; border-radius:13px; padding:12px 14px; text-align:left; cursor:pointer; display:flex; align-items:center; gap:12px; font-family:inherit; transition:border-color .15s,background .15s; width:100%; }
+  .opt.sel { border-color:var(--azul); background:#eef3fb; }
+  .opt.ok  { border-color:var(--verde); background:var(--verde-bg); }
+  .opt.mal { border-color:var(--rojo);  background:var(--rojo-bg); }
+  .opt:disabled { cursor:default; }
+
+  .bola { min-width:30px; height:30px; border-radius:50%; background:#e8edf8; color:#64748b; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; flex-shrink:0; transition:all .15s; }
+  .sel .bola { background:var(--azul); color:white; }
+  .ok  .bola { background:var(--verde); color:white; }
+  .mal .bola { background:var(--rojo);  color:white; }
+  .opt-txt { font-size:14px; font-weight:500; line-height:1.4; color:#334155; }
+
+  .feedback { border-radius:12px; padding:12px 16px; text-align:center; font-weight:800; font-size:15px; margin-bottom:11px; }
+  .feedback.ok  { background:var(--verde-bg); color:var(--verde); }
+  .feedback.mal { background:var(--rojo-bg);  color:var(--rojo); }
+
+  .btn-confirmar,.btn-sig { width:100%; padding:16px; border:none; border-radius:14px; font-size:15px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .btn-confirmar { background:linear-gradient(135deg,var(--azul),var(--azul2)); color:white; box-shadow:0 4px 14px rgba(0,53,128,.3); }
+  .btn-confirmar:disabled { background:#cbd5e1; color:#94a3b8; box-shadow:none; cursor:not-allowed; }
+  .btn-sig { background:linear-gradient(135deg,var(--rojo),var(--rojo2)); color:white; margin-top:9px; box-shadow:0 4px 14px rgba(192,0,27,.3); }
+
+  /* ─── RESULTADO ─── */
+  .res-hero { background:linear-gradient(150deg,var(--azul),var(--azul2)); border-radius:22px; padding:28px 24px; text-align:center; color:white; margin-bottom:16px; }
+  .res-emoji { font-size:60px; margin-bottom:8px; }
+  .res-title { font-size:22px; font-weight:900; }
+  .res-sub { font-size:13px; opacity:.8; margin-top:5px; }
+  .res-badge { display:inline-block; margin-top:10px; padding:5px 18px; border-radius:20px; font-size:13px; font-weight:800; }
+  .res-badge.ap { background:rgba(21,128,61,.25); color:#bbf7d0; }
+  .res-badge.no { background:rgba(192,0,27,.25); color:#fecaca; }
+
+  .res-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; margin-bottom:14px; }
+  .res-card { background:white; border-radius:14px; padding:14px 8px; text-align:center; box-shadow:var(--sombra); }
+  .res-n { font-size:26px; font-weight:900; }
+  .res-l { font-size:10px; color:var(--gris); font-weight:700; text-transform:uppercase; letter-spacing:.5px; }
+
+  .seccion { background:white; border-radius:14px; padding:16px; margin-bottom:14px; box-shadow:var(--sombra); }
+  .sec-titulo { font-weight:800; color:var(--azul); font-size:14px; margin-bottom:12px; }
+  .tiempo-row { display:flex; justify-content:space-between; margin-bottom:8px; }
+  .tiempo-txt { font-size:13px; font-weight:700; color:var(--azul); }
+
+  .barra-res { background:#e2e8f0; border-radius:10px; height:12px; overflow:hidden; }
+  .barra-res-fill { height:100%; border-radius:10px; transition:width 1.2s ease; }
+  .barra-res-fill.ap { background:linear-gradient(90deg,var(--verde),#22c55e); }
+  .barra-res-fill.no { background:linear-gradient(90deg,var(--rojo),#f87171); }
+
+  .rev-list { max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; }
+  .rev-item { border-radius:10px; padding:10px 12px; border-left:4px solid; }
+  .rev-item.ok  { background:#f0fdf4; border-color:var(--verde); }
+  .rev-item.mal { background:#fff7ed; border-color:#f97316; }
+  .rev-p { font-size:12px; font-weight:700; color:#1e293b; margin-bottom:4px; line-height:1.4; }
+  .rev-r { font-size:11.5px; color:var(--verde); font-weight:600; }
+
+  .btns-finales { display:flex; gap:10px; }
+  .btn-menu { flex:1; padding:14px; background:white; color:var(--azul); border:2px solid var(--azul); border-radius:14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; }
+  .btn-nuevo { flex:1; padding:14px; background:linear-gradient(135deg,var(--azul),var(--azul2)); color:white; border:none; border-radius:14px; font-size:14px; font-weight:800; cursor:pointer; font-family:inherit; }
+
+  .rev-list::-webkit-scrollbar { width:4px; }
+  .rev-list::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:4px; }
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ═══════════════════════════════════ -->
+<div id="p-login" class="login-outer">
+  <div class="login-box">
+    <div class="login-top">
+      <div class="login-flag">🇵🇦</div>
+      <div class="login-title">Examen de Naturalización</div>
+      <div class="login-sub">El contenido está basado en material oficial del Tribunal Electoral de Panamá<br>Ingresa tus credenciales para continuar</div>
+    </div>
+
+    <div class="campo">
+      <label>👤 Usuario</label>
+      <input type="text" id="inp-user" placeholder="Tu usuario" autocomplete="username" autocapitalize="none">
+    </div>
+    <div class="campo">
+      <label>🔒 Contraseña</label>
+      <input type="password" id="inp-pass" placeholder="Tu contraseña" autocomplete="current-password">
+    </div>
+
+    <button class="btn-login" id="btn-login" onclick="doLogin()">Entrar →</button>
+
+    <div class="login-spinner" id="spinner">⏳ Verificando...</div>
+    <div class="login-error" id="login-err">❌ Usuario o contraseña incorrectos</div>
+
+    <div class="login-footer">Simulador oficial · Versión Marzo 2025</div>
+  </div>
+</div>
+
+<!-- ══ MENÚ ════════════════════════════════════ -->
+<div id="p-menu" class="pant">
+<div class="wrap">
+  <div class="hero">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:8px">
+      <button class="btn-logout" onclick="logout()">⬅ Salir</button>
+    </div>
+    <div class="hero-flag">🇵🇦</div>
+    <div class="hero-title">Simulador de Examen</div>
+    <div class="hero-sub">Aspirantes a la Nacionalidad Panameña<br>Tribunal Electoral · Marzo 2025</div>
+    <div class="hero-user" id="hero-user">👤</div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="stat-icon">📝</div><div class="stat-n">115</div><div class="stat-l">Total preguntas</div></div>
+    <div class="stat"><div class="stat-icon">🎯</div><div class="stat-n">20</div><div class="stat-l">Por examen</div></div>
+    <div class="stat"><div class="stat-icon">📂</div><div class="stat-n">5</div><div class="stat-l">Categorías</div></div>
+    <div class="stat"><div class="stat-icon">✅</div><div class="stat-n" id="disp-n">115</div><div class="stat-l">Disponibles</div></div>
+  </div>
+
+  <div class="filtro-card">
+    <div class="filtro-titulo">📚 Filtrar por categoría</div>
+    <div class="filtros" id="filtros"></div>
+  </div>
+
+  <button class="btn-start" onclick="iniciar()">🚀 &nbsp;Iniciar Examen</button>
+</div>
+</div>
+
+<!-- ══ EXAMEN ═══════════════════════════════════ -->
+<div id="p-examen" class="pant">
+<div class="wrap">
+  <div class="ex-header">
+    <div>
+      <div class="ex-lbl">Progreso</div>
+      <div class="ex-val" id="ex-prog">1 / 20</div>
+      <span class="ex-cat" id="ex-cat"></span>
+    </div>
+    <div style="text-align:right">
+      <div class="ex-lbl">Tiempo</div>
+      <div class="crono" id="crono">0:00</div>
+    </div>
+  </div>
+  <div class="barra-wrap"><div class="barra-fill" id="barra" style="width:0%"></div></div>
+  <div class="q-card">
+    <div class="q-num" id="q-num">Pregunta 1</div>
+    <div class="q-txt" id="q-txt"></div>
+  </div>
+  <div class="opts" id="opts"></div>
+  <div class="feedback" id="feedback" style="display:none"></div>
+  <button class="btn-confirmar" id="btn-conf" onclick="confirmar()" disabled>Confirmar respuesta</button>
+  <button class="btn-sig" id="btn-sig" onclick="siguiente()" style="display:none"></button>
+</div>
+</div>
+
+<!-- ══ RESULTADO ════════════════════════════════ -->
+<div id="p-res" class="pant">
+<div class="wrap">
+  <div class="res-hero">
+    <div class="res-emoji" id="r-emoji">🎉</div>
+    <div class="res-title" id="r-title"></div>
+    <div class="res-sub" id="r-sub"></div>
+    <div class="res-badge" id="r-badge"></div>
+  </div>
+  <div class="res-grid">
+    <div class="res-card"><div class="res-n" id="r-ok" style="color:var(--verde)">0</div><div class="res-l">Correctas</div></div>
+    <div class="res-card"><div class="res-n" id="r-mal" style="color:var(--rojo)">0</div><div class="res-l">Incorrectas</div></div>
+    <div class="res-card"><div class="res-n" id="r-porc" style="color:var(--azul)">0%</div><div class="res-l">Calificación</div></div>
+  </div>
+  <div class="seccion">
+    <div class="tiempo-row">
+      <span class="tiempo-txt" id="r-tiempo">⏱ 0:00</span>
+      <span class="tiempo-txt" id="r-estado"></span>
+    </div>
+    <div class="barra-res"><div class="barra-res-fill" id="r-barra" style="width:0%"></div></div>
+  </div>
+  <div class="seccion">
+    <div class="sec-titulo">📋 Revisión de respuestas</div>
+    <div class="rev-list" id="rev-list"></div>
+  </div>
+  <div class="btns-finales">
+    <button class="btn-menu" onclick="ir('menu')">🏠 Menú</button>
+    <button class="btn-nuevo" onclick="iniciar()">🔄 Nuevo examen</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  ⚙️  CONFIGURACIÓN AIRTABLE
+//  Rellena estos 3 valores con los datos de tu cuenta Airtable
+// ══════════════════════════════════════════════════════════════
+const AIRTABLE_TOKEN   = 'patgrd8O5Ig6TU0KQ.a31ef89ae3f3acf0afc25820b1bd06929f1e48043959ffc88b3b4ada2f602745';  
+const AIRTABLE_BASE_ID = 'app84U2zELANWsavR';    
+const AIRTABLE_TABLE   = 'Usuarios';           
+// ══════════════════════════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════════════════════════
+let usuarioActual = '';
+
+// Enter en los campos dispara login
+document.getElementById('inp-user').addEventListener('keydown', e => e.key==='Enter' && document.getElementById('inp-pass').focus());
+document.getElementById('inp-pass').addEventListener('keydown', e => e.key==='Enter' && doLogin());
+
+async function doLogin() {
+  const user = document.getElementById('inp-user').value.trim();
+  const pass = document.getElementById('inp-pass').value;
+  const errEl = document.getElementById('login-err');
+  const spinner = document.getElementById('spinner');
+  const btn = document.getElementById('btn-login');
+
+  errEl.style.display = 'none';
+
+  if (!user || !pass) {
+    errEl.textContent = '⚠️ Por favor completa usuario y contraseña';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // UI: cargando
+  btn.disabled = true;
+  spinner.style.display = 'block';
+
+  try {
+    // Llama a Airtable buscando el usuario
+    const formula = encodeURIComponent(`AND({usuario}="${user}",{password}="${pass}")`);
+    const url = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${AIRTABLE_TABLE}?filterByFormula=${formula}&maxRecords=1`;
+
+    const res = await fetch(url, {
+      headers: { Authorization: `Bearer ${AIRTABLE_TOKEN}` }
+    });
+
+    if (!res.ok) throw new Error('Error de conexión con Airtable');
+
+    const data = await res.json();
+
+    if (data.records && data.records.length > 0) {
+      // ✅ Usuario válido
+      usuarioActual = data.records[0].fields.nombre || user;
+      document.getElementById('hero-user').textContent = '👤 ' + usuarioActual;
+      mostrarApp();
+    } else {
+      // ❌ Credenciales incorrectas
+      errEl.textContent = '❌ Usuario o contraseña incorrectos';
+      errEl.style.display = 'block';
+    }
+
+  } catch (err) {
+    errEl.textContent = '⚠️ Error de conexión. Verifica tu internet.';
+    errEl.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  spinner.style.display = 'none';
+}
+
+function mostrarApp() {
+  document.getElementById('p-login').style.display = 'none';
+  ir('menu');
+}
+
+function logout() {
+  usuarioActual = '';
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pass').value = '';
+  document.getElementById('login-err').style.display = 'none';
+  document.querySelectorAll('.pant').forEach(p => p.classList.remove('on'));
+  document.getElementById('p-login').style.display = 'flex';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  BANCO DE PREGUNTAS (115 preguntas)
+// ══════════════════════════════════════════════════════════════
+const BANCO = [
+  // ── ORGANIZACIÓN POLÍTICA ──
+  {cat:"Organización Política",p:"¿Qué es la Constitución Política de la República?",ops:["Un reglamento del Órgano Ejecutivo","El conjunto de normas fundamentales que organizan el Estado panameño, del cual se derivan todas las demás normas legales. También se llama Carta Magna","Un tratado internacional firmado por Panamá","Las leyes aprobadas por la Asamblea Nacional"],c:1},
+  {cat:"Organización Política",p:"¿Cuántas constituciones políticas ha tenido la República de Panamá?",ops:["Tres (1904, 1946, 1972)","Cuatro (1904, 1941, 1946, 1972)","Dos (1904 y 1972)","Cinco (1904, 1941, 1946, 1972, 1989)"],c:1},
+  {cat:"Organización Política",p:"¿Cuál es la Constitución vigente de Panamá?",ops:["La de 1946","La de 1941","La de 1972, reformada por Actos Reformatorios de 1978, el Acto Constitucional de 1983 y Actos Legislativos de 1993, 1994 y 2004","La de 1904"],c:2},
+  {cat:"Organización Política",p:"Según la Constitución, el Gobierno panameño se caracteriza por ser:",ops:["Federal, democrático, representativo y presidencial","Unitario, republicano, democrático y representativo","Unitario, federal, democrático y parlamentario","Republicano, federal, liberal y representativo"],c:1},
+  {cat:"Organización Política",p:"¿Qué significa que el gobierno sea 'Unitario'?",ops:["Que tiene un solo partido político","Que todos los niveles de gobierno están subordinados al poder central y en todo el país rigen las mismas leyes","Que el presidente tiene poderes absolutos","Que solo existe un órgano de gobierno"],c:1},
+  {cat:"Organización Política",p:"¿Qué significa que el gobierno sea 'Democrático'?",ops:["Que el presidente elige a los ministros","Se basa en la igualdad política de los ciudadanos","Que hay elecciones cada diez años","Que el ejército gobierna el país"],c:1},
+  {cat:"Organización Política",p:"¿Qué significa que el gobierno sea 'Representativo'?",ops:["El pueblo ejerce directamente todas las funciones del gobierno","El pueblo, siendo soberano, delega el ejercicio de las funciones del gobierno en personas elegidas por él","El gobierno representa solo a los partidos políticos","Los representantes se eligen por sorteo"],c:1},
+  {cat:"Organización Política",p:"¿Cuál de los siguientes NO es un derecho consagrado en la Constitución?",ops:["Libertad de pensamiento y expresión","Derecho de igualdad ante la ley","Derecho a tener doble nacionalidad automática","Libertad de conciencia, culto y enseñanza"],c:2},
+  {cat:"Organización Política",p:"¿Qué es la nacionalidad?",ops:["El documento de identidad","Un vínculo social y político que une a una persona con el Estado al que pertenece, dándole derecho a reclamar protección","El derecho a votar en elecciones","El permiso de residencia en un país"],c:1},
+  {cat:"Organización Política",p:"¿De cuántas formas se puede adquirir la nacionalidad panameña?",ops:["Solo por nacimiento","Por nacimiento o naturalización","Por nacimiento, naturalización o disposición constitucional","Por nacimiento, matrimonio o naturalización"],c:2},
+  {cat:"Organización Política",p:"¿Cuántos años de residencia necesita un extranjero para naturalizarse (caso general)?",ops:["Tres años","Cinco años consecutivos","Diez años","Siete años"],c:1},
+  {cat:"Organización Política",p:"Un extranjero con 3 años de residencia puede pedir naturalización si:",ops:["Tiene dinero suficiente en el banco","Tiene hijos nacidos en Panamá, o padre/madre panameños, o cónyuge de nacionalidad panameña","Trabaja para el gobierno panameño","Solo habla español"],c:1},
+  {cat:"Organización Política",p:"¿Quiénes son panameños por disposición constitucional sin carta de naturaleza?",ops:["Hijos de extranjeros nacidos en Panamá","Los nacidos en el extranjero y adoptados por nacionales panameños antes de cumplir 7 años","Los casados con panameños por más de 5 años","Los extranjeros con inversiones en Panamá"],c:1},
+  {cat:"Organización Política",p:"¿Qué es el sufragio?",ops:["El presupuesto nacional del Estado","El derecho y deber del ciudadano de intervenir en la organización del Estado mediante consultas populares","El registro de nacimientos del Tribunal Electoral","El proceso de naturalización de extranjeros"],c:1},
+  {cat:"Organización Política",p:"Para ejercer el sufragio se necesita:",ops:["Solo ser mayor de 18 años","Ser ciudadano panameño, aparecer en el Padrón Electoral, presentar la cédula y estar en pleno goce de derechos civiles y políticos","Tener al menos 5 años de residencia","Solo presentar pasaporte"],c:1},
+  {cat:"Organización Política",p:"¿Por cuánto tiempo duran los cargos públicos elegidos por votación popular?",ops:["Cuatro años","Seis años","Cinco años, iniciando funciones el 1° de julio siguiente a la elección","Tres años"],c:2},
+  {cat:"Organización Política",p:"¿Cuáles son los tres órganos del Estado panameño?",ops:["Ejecutivo, Legislativo y Tribunal Electoral","Ejecutivo, Legislativo y Judicial","Presidente, Asamblea Nacional y Corte Suprema","Gobierno, Congreso y Tribunales"],c:1},
+  {cat:"Organización Política",p:"¿Cómo está compuesto el Órgano Ejecutivo?",ops:["Por el Presidente y los diputados","Por el Presidente de la República, su Vicepresidente y los 15 Ministros de Estado","Por el Presidente, Vicepresidente y los magistrados","Solo por el Presidente"],c:1},
+  {cat:"Organización Política",p:"Para ser presidente o vicepresidente se requiere:",ops:["Ser panameño por nacimiento y tener 30 años","Ser panameño por naturalización y tener 35 años","Ser panameño por nacimiento, haber cumplido 35 años y no haber sido condenado por delito doloso con pena de 5+ años","Ser panameño y haber vivido en el país al menos 10 años"],c:2},
+  {cat:"Organización Política",p:"¿Por cuántos diputados está integrada actualmente la Asamblea Nacional?",ops:["65 diputados","71 diputados","80 diputados","60 diputados"],c:1},
+  {cat:"Organización Política",p:"¿Cuál es la principal función de la Asamblea Nacional?",ops:["Elegir al presidente","Expedir las leyes necesarias para el cumplimiento de los fines del Estado","Administrar el Canal de Panamá","Dirigir la política exterior"],c:1},
+  {cat:"Organización Política",p:"¿Qué es el Consejo de Gabinete?",ops:["Una reunión de los diputados","La reunión del Presidente, quien lo presidirá, con el Vicepresidente y los Ministros de Estado","El tribunal que juzga al presidente","Una comisión del Tribunal Electoral"],c:1},
+  {cat:"Organización Política",p:"¿Cuándo se creó el Tribunal Electoral?",ops:["En 1903","En 1972","En 1956, mediante el Acto Legislativo N°2","En 1983"],c:2},
+  {cat:"Organización Política",p:"¿Por cuántos magistrados está integrado el Tribunal Electoral y por cuánto tiempo?",ops:["Cinco magistrados por 5 años","Tres magistrados nombrados por 10 años: uno por el Ejecutivo, uno por el Legislativo y uno por la Corte Suprema","Siete magistrados por 7 años","Nueve magistrados vitalicios"],c:1},
+  {cat:"Organización Política",p:"¿Cuál es la función principal del Órgano Judicial?",ops:["Crear las leyes","Administrar la justicia de forma gratuita, expedita e ininterrumpida","Organizar las elecciones","Fiscalizar el gasto público"],c:1},
+  {cat:"Organización Política",p:"¿Quién es el jefe de la administración municipal?",ops:["El gobernador","El representante de corregimiento","El alcalde, elegido por votación popular directa","El diputado"],c:2},
+  {cat:"Organización Política",p:"¿Quién nombra al gobernador de provincia?",ops:["Los ciudadanos por votación directa","La Asamblea Nacional","El Órgano Ejecutivo por conducto del Ministro de Gobierno","El Tribunal Electoral"],c:2},
+  {cat:"Organización Política",p:"¿A qué cargos puede aspirar un panameño naturalizado?",ops:["A todos, incluyendo la presidencia","Solo a diputado","A Diputado, Alcalde, Representante de Corregimiento y Concejal (con requisitos de tiempo)","No puede aspirar a ningún cargo"],c:2},
+  {cat:"Organización Política",p:"Para ser Alcalde, un panameño naturalizado debe haber obtenido la nacionalidad:",ops:["Al menos 5 años antes","Al menos 10 años antes de la fecha de la elección","Al menos 15 años antes","Al menos 3 años antes"],c:1},
+  {cat:"Organización Política",p:"¿Cuántos ministerios conforman la administración pública de Panamá?",ops:["Doce","Trece","Quince","Dieciséis"],c:2},
+  {cat:"Organización Política",p:"¿Qué es el Ministerio Público?",ops:["El ministerio que administra el Canal","Organismo que colabora con el Órgano Judicial; compuesto por la Procuraduría General de la Nación y la Procuraduría de la Administración","El ministerio de educación pública","El ministerio de relaciones exteriores"],c:1},
+  // ── GEOGRAFÍA ──
+  {cat:"Geografía",p:"¿Cuáles son los límites de la República de Panamá?",ops:["Norte: Caribe, Sur: Pacífico, Este: Costa Rica, Oeste: Colombia","Norte: Caribe, Sur: Pacífico, Oeste: Costa Rica, Este: Colombia","Norte: Pacífico, Sur: Caribe, Este: Costa Rica, Oeste: Colombia","Norte: Caribe, Sur: Pacífico, Oeste: Colombia, Este: Costa Rica"],c:1},
+  {cat:"Geografía",p:"¿En cuántas provincias y comarcas está dividida Panamá?",ops:["8 provincias y 4 comarcas","10 provincias y 6 comarcas","9 provincias y 5 comarcas","12 provincias y 6 comarcas"],c:1},
+  {cat:"Geografía",p:"¿Cuál es la capital de la provincia de Chiriquí?",ops:["Santiago","Chitré","David","Penonomé"],c:2},
+  {cat:"Geografía",p:"¿Cuál es la capital de la provincia de Herrera?",ops:["Las Tablas","Chitré","La Chorrera","Bocas del Toro"],c:1},
+  {cat:"Geografía",p:"¿Cuál es la capital de la provincia de Los Santos?",ops:["Chitré","Santiago","Las Tablas","Penonomé"],c:2},
+  {cat:"Geografía",p:"¿Cuál es la capital de la provincia de Veraguas?",ops:["Penonomé","Santiago","David","La Palma"],c:1},
+  {cat:"Geografía",p:"¿Cuál es la capital de la provincia de Darién?",ops:["La Chorrera","La Palma","Colón","Buabidí"],c:1},
+  {cat:"Geografía",p:"¿Cuál es la capital de la provincia de Coclé?",ops:["Chitré","Colón","Penonomé","Santiago"],c:2},
+  {cat:"Geografía",p:"¿Cuál es la capital de la provincia de Panamá Oeste?",ops:["Ciudad de Panamá","Penonomé","La Chorrera","Arraiján"],c:2},
+  {cat:"Geografía",p:"¿Cuál es la cabecera de la Comarca Kuna Yala?",ops:["Buabidí","Akua Yala","El Porvenir","Unión Chocó"],c:2},
+  {cat:"Geografía",p:"¿Cuál es la cabecera de la Comarca Ngäbe-Buglé?",ops:["Akua Yala","El Porvenir","Sieyic","Buabidí"],c:3},
+  {cat:"Geografía",p:"¿Cuál es la cabecera de la Comarca Emberá Wounaán?",ops:["El Porvenir","Buabidí","Unión Chocó","Akua Yala"],c:2},
+  {cat:"Geografía",p:"¿Cuál es la forma del Istmo de Panamá?",ops:["Forma de 'Z' acostada","Forma de 'S' acostada","Forma de 'L'","Forma de 'C'"],c:1},
+  {cat:"Geografía",p:"¿Cuál es la superficie del Istmo de Panamá?",ops:["65,000 km²","80,000 km²","75,517 km²","90,000 km²"],c:2},
+  {cat:"Geografía",p:"¿Cuál es la altura máxima del Istmo de Panamá?",ops:["El Cerro Ancón, 1,000 m, en Panamá","El Volcán Barú, 3,475 metros, en la provincia de Chiriquí","El Cerro Pirre, 2,000 m, en Darién","El Volcán Barú, 4,200 m, en Veraguas"],c:1},
+  {cat:"Geografía",p:"¿Cuáles son las principales provincias ganaderas?",ops:["Panamá, Colón y Darién","Chiriquí, Los Santos y Veraguas","Coclé, Herrera y Los Santos","Chiriquí, Bocas del Toro y Coclé"],c:1},
+  {cat:"Geografía",p:"¿Cuáles son las principales hidroeléctricas de Panamá?",ops:["Fortuna, Gatún y Miraflores","Bayano (en Panamá) y Fortuna, Esti, Estrella y Los Valles (en Chiriquí)","Fortuna, Bayano y Estrella en Veraguas","Changuinola en Bocas del Toro"],c:1},
+  {cat:"Geografía",p:"¿Cuándo fue inaugurado el Puente de las Américas?",ops:["15 de agosto de 1914","10 de octubre de 1955","12 de octubre de 1962","3 de noviembre de 1903"],c:2},
+  {cat:"Geografía",p:"¿Cómo se llamaba originalmente el Puente de las Américas?",ops:["Puente Centenario","Puente Miraflores","Puente Thatcher","Puente Balboa"],c:2},
+  {cat:"Geografía",p:"¿Dónde está el aeropuerto internacional principal de Panamá?",ops:["En Albrook, Ciudad de Panamá","En Tocumen, Ciudad de Panamá","En David, Chiriquí","En Colón"],c:1},
+  {cat:"Geografía",p:"¿Cómo se llama el aeropuerto internacional en David, Chiriquí?",ops:["Aeropuerto Marcos A. Gelabert","Aeropuerto Capitán Alonso Valderrama","Aeropuerto Enrique Malek","Aeropuerto Rubén Cantú"],c:2},
+  // ── HISTORIA ──
+  {cat:"Historia",p:"¿Cuál fue la primera población fundada en el Istmo?",ops:["La ciudad de Panamá, por Pedrarias Dávila","Portobelo, por Cristóbal Colón","Santa María la Antigua del Darién, fundada por Vasco Núñez de Balboa en 1510","Nombre de Dios, por los españoles"],c:2},
+  {cat:"Historia",p:"¿Quién es considerado el conquistador del Istmo?",ops:["Vasco Núñez de Balboa","Cristóbal Colón","Rodrigo Galván de Bastidas","Pedrarias Dávila, quien fundó la ciudad de Panamá el 15 de agosto de 1519"],c:3},
+  {cat:"Historia",p:"¿Quién descubrió el Mar del Sur (Océano Pacífico) y cuándo?",ops:["Cristóbal Colón, 12 de octubre de 1492","Vasco Núñez de Balboa, el 25 de septiembre de 1513","Rodrigo Galván de Bastidas, en 1501","Pedrarias Dávila, en 1519"],c:1},
+  {cat:"Historia",p:"¿Quién es considerado el descubridor del Istmo de Panamá?",ops:["Cristóbal Colón","Vasco Núñez de Balboa","Rodrigo Galván de Bastidas, que llegó en 1501 antes que Cristóbal Colón","Pedrarias Dávila"],c:2},
+  {cat:"Historia",p:"¿Por qué se llamó al Istmo 'Garganta del Perú'?",ops:["Fue descubierto por exploradores peruanos","Por su condición geográfica y porque por su territorio pasaba todo el oro y la plata del Perú rumbo a Europa","Tenía la misma forma que el territorio peruano","Los incas dominaron el istmo"],c:1},
+  {cat:"Historia",p:"¿Cuándo se independizó Panamá de España?",ops:["El 3 de noviembre de 1903","El 10 de noviembre de 1821","El 28 de noviembre de 1821","El 15 de agosto de 1519"],c:2},
+  {cat:"Historia",p:"¿Qué fue el Grito de Independencia de La Villa de Los Santos?",ops:["La separación de Colombia el 3 de noviembre de 1903","La primera expresión de independencia de Panamá de España, ocurrida el 10 de noviembre de 1821","La firma del Tratado Hay-Bunau Varilla","La fundación de la ciudad de Panamá"],c:1},
+  {cat:"Historia",p:"¿Cuánto tiempo estuvo Panamá unida a la Gran Colombia?",ops:["50 años","100 años","82 años, separándose definitivamente el 3 de noviembre de 1903","60 años"],c:2},
+  {cat:"Historia",p:"¿Quiénes conformaron la Junta Provisional de Gobierno de 1903?",ops:["Manuel Amador Guerrero, Belisario Porras y Tomás Arias","José Agustín Arango, Federico Boyd y Tomás Arias","Omar Torrijos, Arnulfo Arias y Guillermo Endara","Justo Arosemena, Pablo Arosemena y Ricardo Alfaro"],c:1},
+  {cat:"Historia",p:"¿Cuándo se firmó el Tratado Hay-Bunau Varilla?",ops:["3 de noviembre de 1903","18 de noviembre de 1903","15 de agosto de 1914","7 de septiembre de 1977"],c:1},
+  {cat:"Historia",p:"¿Cuándo fue inaugurado el Canal de Panamá?",ops:["3 de noviembre de 1903","18 de noviembre de 1903","15 de agosto de 1914","31 de diciembre de 1999"],c:2},
+  {cat:"Historia",p:"¿Cuántos kilómetros de largo tiene el Canal de Panamá?",ops:["50 km","65 km","80 km","100 km"],c:2},
+  {cat:"Historia",p:"¿Qué estableció el Tratado Torrijos-Carter de 1977?",ops:["La construcción del Canal por EE.UU.","La creación de la Zona del Canal","A partir del mediodía del 31 de diciembre de 1999, el Canal pasó a control absoluto de la República de Panamá","La independencia de Colombia"],c:2},
+  {cat:"Historia",p:"¿Quién fue Manuel Amador Guerrero?",ops:["El conquistador del Istmo","Fundador de la República y primer presidente a partir del 20 de febrero de 1904","El firmante del Tratado Torrijos-Carter","El primer diputado de la Asamblea"],c:1},
+  {cat:"Historia",p:"¿Quién fue Omar Torrijos Herrera?",ops:["El presidente que aprobó el Canal francés","Militar que participó en el golpe de 1968; luego líder del proceso de gobierno. Aprobó la Constitución de 1972 y firmó los Tratados Torrijos-Carter en 1977","El primer presidente de Panamá","El fundador del Tribunal Electoral"],c:1},
+  {cat:"Historia",p:"¿Qué ocurrió el 9 de enero de 1964?",ops:["Se firmó el Tratado Torrijos-Carter","Panamá se separó de Colombia","Día de los Mártires: soldados de EE.UU. enfrentaron a estudiantes panameños que intentaban izar la bandera en la Zona del Canal; murieron 23 panameños","Se inauguró el Canal"],c:2},
+  {cat:"Historia",p:"¿Cuándo fue la invasión de Estados Unidos a Panamá?",ops:["9 de enero de 1964","7 de septiembre de 1977","20 de diciembre de 1989","31 de diciembre de 1999"],c:2},
+  {cat:"Historia",p:"¿Quién fue Arnulfo Arias Madrid?",ops:["Presidente de Panamá una sola vez","Tres veces presidente (1940, 1951, 1968); en su último mandato fue derrocado por la Guardia Nacional. Fundador de la doctrina Panameñista","El presidente que negoció el Canal","El fundador de la República"],c:1},
+  {cat:"Historia",p:"¿Quién destruyó la ciudad de Panamá en enero de 1671?",ops:["Las fuerzas colombianas","El pirata inglés Henry Morgan","Las tropas españolas","Los piratas franceses"],c:1},
+  {cat:"Historia",p:"¿Cuándo se fundó la ciudad de Panamá?",ops:["1501","15 de agosto de 1519","1671","1821"],c:1},
+  {cat:"Historia",p:"¿Cuántos conjuntos de esclusas tiene el Canal actualmente?",ops:["3 (Pedro Miguel, Miraflores y Gatún)","5 conjuntos: Pedro Miguel, Agua Clara, Miraflores, Gatún y Cocolí (ampliación 2009-2016)","4 esclusas","6 esclusas"],c:1},
+  // ── OTROS ASPECTOS ──
+  {cat:"Otros Aspectos",p:"¿Quién fue la primera mujer presidenta de Panamá?",ops:["Amelia Dennis de Icaza","María Olimpia de Obaldía","Mireya Moscoso Rodríguez, en el periodo constitucional 1999-2004","Rosa María Crespo de Britton"],c:2},
+  {cat:"Otros Aspectos",p:"¿Cuál es el principal traje típico panameño?",ops:["La montuna santeña","La pollera de gala","La basquiña","La ocueña"],c:1},
+  {cat:"Otros Aspectos",p:"¿Cuál es el plato típico más representativo de Panamá?",ops:["El arroz con pollo","El tamal","El sancocho","El bollo preñao"],c:2},
+  {cat:"Otros Aspectos",p:"¿Quién escribió el poema 'Patria'?",ops:["Amelia Dennis de Icaza","Demetrio Korsi","Ricardo Miró","Rogelio Sinán"],c:2},
+  {cat:"Otros Aspectos",p:"¿Quién es la autora del poema al Cerro Ancón?",ops:["María Olimpia de Obaldía","Ricardo Miró","Amelia Dennis de Icaza","Demetrio Korsi"],c:2},
+  {cat:"Otros Aspectos",p:"¿Cuándo se celebra el Día de la Separación de Panamá de Colombia?",ops:["28 de noviembre","10 de noviembre","3 de noviembre","9 de enero"],c:2},
+  {cat:"Otros Aspectos",p:"¿Qué se conmemora el 9 de enero en Panamá?",ops:["La independencia de España","El Día de los Mártires","La separación de Colombia","La inauguración del Canal"],c:1},
+  {cat:"Otros Aspectos",p:"¿Qué se celebra el 28 de noviembre en Panamá?",ops:["La separación de Colombia","El Grito de Independencia de La Villa de Los Santos","La Independencia de España","La reafirmación de la separación en Colón"],c:2},
+  {cat:"Otros Aspectos",p:"¿Cuál es la música típica panameña?",ops:["Salsa, merengue y cumbia","Pindín, tamborito, atravesao, cumbia, punto, tamborera y bailes congos","Vallenato, cumbia y porro","Marimba, punto y guaracha"],c:1},
+  {cat:"Otros Aspectos",p:"¿Cuántos partidos políticos existen actualmente en Panamá?",ops:["6 partidos","7 partidos","8 partidos","10 partidos"],c:2},
+  {cat:"Otros Aspectos",p:"¿Cuándo toma posesión el presidente de la República?",ops:["1 de enero","3 de noviembre","1 de julio, fecha que también es día de fiesta nacional","15 de agosto"],c:2},
+  // ── SÍMBOLOS E HIMNO ──
+  {cat:"Símbolos e Himno",p:"¿Cuáles son los símbolos patrios de la República de Panamá?",ops:["La Bandera y el Escudo Nacional solamente","La Bandera Nacional, el Escudo Nacional y el Himno Nacional","La Bandera, el Escudo, el Himno y la Pollera","La Bandera, el Himno y el Canal de Panamá"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Qué ley declara el 4 de noviembre como Día de los Símbolos de la Nación?",ops:["La Ley 10 de 2001","La Ley 2 de 23 de enero de 2012","La Ley 48 de 1925","La Ley 64 de 1904"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Quién diseñó la Bandera Nacional y cuándo fue adoptada provisionalmente?",ops:["Jerónimo de la Ossa en 1903","Manuel E. Amador T.; adoptada provisionalmente en 1904 por la Asamblea Constituyente mediante la Ley 64","Nicanor Villalaz en 1903","Santos Jorge en 1904"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Cómo está estructurada la Bandera Nacional?",ops:["Tres franjas horizontales: azul, blanca y roja","Un rectángulo cuartelado: blanco con estrella azul (superior izq.), rojo (superior der.), azul (inferior izq.) y blanco con estrella roja (inferior der.)","Dos franjas verticales azul y roja con una estrella blanca al centro","Una franja diagonal roja sobre fondo azul y blanco"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Qué representa el cuadrante azul en la Bandera Nacional?",ops:["El Partido Liberal","El Partido Conservador","El campo de la paz","La honestidad de los ciudadanos"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Qué representa el cuadrante rojo en la Bandera Nacional?",ops:["El Partido Conservador","El Partido Liberal","La sangre de los mártires","La autoridad del Estado"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Qué representa la estrella azul en la Bandera?",ops:["El Partido Liberal","La autoridad y la ley","La pureza y la honestidad en la vida cívica de la patria","El campo de la paz"],c:2},
+  {cat:"Símbolos e Himno",p:"¿Qué representa la estrella roja en la Bandera?",ops:["El Partido Conservador","La autoridad y la ley","La pureza y la honestidad","El campo de la paz"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Qué representa el color blanco en la Bandera?",ops:["El Partido Conservador","El Partido Liberal","La pureza y honestidad","El campo de la paz para hacer patria en la nueva nación"],c:3},
+  {cat:"Símbolos e Himno",p:"¿Cómo se coloca la Bandera en posición horizontal?",ops:["El cuadrante rojo queda arriba a la izquierda","El cuadrante blanco con la estrella azul queda en su forma original, en la posición superior izquierda","El cuadrante azul queda arriba a la derecha","El cuadrante blanco con estrella roja queda arriba"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Cómo se coloca la Bandera en posición vertical?",ops:["El cuadrante azul queda a la izquierda del observador","El cuadrante blanco con la estrella azul queda a la izquierda del observador y el cuadrante azul hacia la derecha","El cuadrante rojo queda a la izquierda","El cuadrante blanco con estrella roja queda arriba"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Cuándo NO debe usarse la Bandera Nacional?",ops:["En días de lluvia","Como anuncio comercial, en cantinas, clubes nocturnos, salas de baile o disfraces; tampoco antes de las 7:00 a.m. ni después de las 6:00 p.m.","Los días de semana","En actos escolares"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Sobre qué fondo descansa el Escudo Nacional?",ops:["Fondo blanco, símbolo de paz","Fondo azul, símbolo del mar","Fondo verde, símbolo de la vegetación del país","Fondo dorado, símbolo de riqueza"],c:2},
+  {cat:"Símbolos e Himno",p:"¿Qué aparece en la cimera (parte superior) del Escudo Nacional?",ops:["Una estrella dorada","Un sol naciente","Un águila harpía adulta con las alas extendidas y una cinta de plata en su pico con la divisa Pro Mundi Beneficio","Una corona española"],c:2},
+  {cat:"Símbolos e Himno",p:"¿Qué significa la divisa 'Pro Mundi Beneficio'?",ops:["Por la gloria de la nación","A beneficio del mundo","Por el progreso del istmo","Para el bien de los ciudadanos"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Qué representan las estrellas de oro sobre el águila en el Escudo?",ops:["Las comarcas indígenas","Las estrellas de la bandera","Las provincias del país","Los tratados internacionales"],c:2},
+  {cat:"Símbolos e Himno",p:"¿Qué muestra la faja central del Escudo Nacional?",ops:["El Canal con sus esclusas","El Istmo con sus dos mares y su cielo: el sol poniéndose por el oeste y la luna elevándose por el este, simbolizando la hora de la separación de Colombia el 3 de noviembre de 1903","Un volcán y selva tropical","El Puente de las Américas"],c:1},
+  {cat:"Símbolos e Himno",p:"En el cantón superior derecho del Escudo (campo de plata), ¿qué se ve?",ops:["Una pala y un azadón cruzados","Una cornucopia de oro","Una rueda alada","Un sable y un fusil en posición de abandono, significando el fin de las guerras fratricidas"],c:3},
+  {cat:"Símbolos e Himno",p:"En el cantón superior izquierdo del Escudo (campo rojo), ¿qué se ve?",ops:["Un sable y un fusil cruzados","Una cornucopia de monedas","Una pala y un azadón cruzados y relucientes, símbolo del trabajo","Una rueda alada de madera"],c:2},
+  {cat:"Símbolos e Himno",p:"En el cantón inferior derecho del Escudo (campo azul), ¿qué se ve?",ops:["Un sable y un fusil en posición de abandono","Una pala y un azadón cruzados","Una rueda alada de madera con alas de oro (símbolo de progreso)","Una cornucopia de oro rebosante de monedas, emblema de riqueza"],c:3},
+  {cat:"Símbolos e Himno",p:"En el cantón inferior izquierdo del Escudo (campo de plata), ¿qué se ve?",ops:["Una pala y un azadón cruzados","Una cornucopia de oro rebosante de monedas","Una rueda alada de madera con alas de oro, símbolo de progreso","Un sable y un fusil en posición de abandono"],c:2},
+  {cat:"Símbolos e Himno",p:"¿Quién ideó el Escudo Nacional?",ops:["Manuel Amador Guerrero","Santos Jorge","Nicanor Villalaz (idea); interpretado artísticamente por Max Lemm; pintado en versión final por Sebastián Villalaz","Jerónimo de la Ossa"],c:2},
+  {cat:"Símbolos e Himno",p:"¿Cuántas estrofas y coros tiene el Himno Nacional?",ops:["Dos estrofas y un coro","Cuatro estrofas y un coro","Tres estrofas y dos coros","Cinco estrofas y un coro"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Con qué palabras comienza el coro del Himno Nacional?",ops:["'En tu suelo cubierto de flores'","'Adelante la pica y la pala'","'Alcanzamos por fin la victoria, en el campo feliz de la unión'","'El progreso acaricia tus lares'"],c:2},
+  {cat:"Símbolos e Himno",p:"¿Qué estrofa dice 'Es preciso cubrir con un velo, del pasado el calvario y la cruz; y que adorne el azul de tu cielo, de concordia la espléndida luz'?",ops:["El coro","La primera estrofa","La segunda estrofa","La tercera estrofa"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Qué estrofa dice 'El progreso acaricia tus lares, al compás de sublime canción; ves rugir a tus pies ambos mares, que dan rumbo a tu noble misión'?",ops:["El coro","La primera estrofa","La segunda estrofa","La tercera estrofa"],c:2},
+  {cat:"Símbolos e Himno",p:"¿Qué estrofa dice 'En tu suelo cubierto de flores, a los besos del tibio terral, terminaron guerreros fragores; sólo reina el amor fraternal'?",ops:["El coro","La primera estrofa","La segunda estrofa","La tercera estrofa"],c:3},
+  {cat:"Símbolos e Himno",p:"¿Qué estrofa dice 'Adelante la pica y la pala, al trabajo sin más dilación; y seremos así prez y gala, de este mundo feraz de Colón'?",ops:["El coro","La segunda estrofa","La tercera estrofa","La cuarta y última estrofa"],c:3},
+  {cat:"Símbolos e Himno",p:"¿Quién escribió la letra del Himno Nacional?",ops:["Santos Jorge","Ricardo Miró","Jerónimo de la Ossa","Ernestina Sucre Tapia"],c:2},
+  {cat:"Símbolos e Himno",p:"¿Quién compuso la música del Himno Nacional?",ops:["Jerónimo de la Ossa","Santos Jorge","Ricardo Miró","Manuel Amador Guerrero"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Qué canción se cantaba antes del actual Himno Nacional?",ops:["'La Panameñita'","El Himno Istmeño, con letra de Juan Agustín Torres y música de Santos Jorge","'Patria', de Ricardo Miró","El himno de la Gran Colombia"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Por qué se adoptó el actual Himno Nacional?",ops:["Porque el anterior era demasiado largo","Santos Jorge, director de la Banda Republicana, ya tenía la música y pidió a Jerónimo de la Ossa la letra para presentarla ante el embajador de EE.UU. William I. Buchanan","Porque la Asamblea Nacional lo ordenó por ley","Porque fue un regalo de Colombia"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Cuál es el texto del Juramento a la Bandera Nacional?",ops:["'Juro defender la patria con mi vida'","'Bandera panameña: juro a Dios y a la Patria, amarte, respetarte y defenderte, como símbolo sagrado de nuestra Nación'","'Prometo ser fiel a Panamá y a su bandera'","'Juro lealtad a la Bandera Nacional y a la República que representa'"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Quién es la autora del Juramento a la Bandera Nacional?",ops:["María de la Ossa de Amador","Ernestina Sucre Tapia","Angélica Bergamota","Amelia Dennis de Icaza"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Qué línea del Himno sigue a 'con ardientes fulgores de gloria'?",ops:["'en el campo feliz de la unión'","'se ilumina la nueva nación'","'ves rugir a tus pies ambos mares'","'al compás de sublime canción'"],c:1},
+  {cat:"Símbolos e Himno",p:"¿Qué dice el Himno sobre los dos mares de Panamá?",ops:["'entre dos mares el istmo reposa'","'ves rugir a tus pies ambos mares, que dan rumbo a tu noble misión'","'dos mares besan tus costas'","'los mares guardan tu soberanía'"],c:1},
+];
+
+// ══════════════════════════════════════════════
+//  LÓGICA DEL EXAMEN
+// ══════════════════════════════════════════════
+const CATS  = ["Todas","Organización Política","Geografía","Historia","Otros Aspectos","Símbolos e Himno"];
+const ICONS = {"Todas":"🇵🇦","Organización Política":"⚖️","Geografía":"🗺️","Historia":"📜","Otros Aspectos":"🎭","Símbolos e Himno":"🎼"};
+
+let catActual = "Todas";
+let examen=[], idx=0, sel=null, conf=false, resps=[], segs=0, tmr=null;
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+// Filtros
+const fw = document.getElementById('filtros');
+CATS.forEach(cat => {
+  const b = document.createElement('button');
+  b.className = 'f-btn' + (cat==='Todas' ? ' on' : '');
+  b.textContent = ICONS[cat] + ' ' + cat;
+  b.onclick = () => {
+    document.querySelectorAll('.f-btn').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    catActual = cat;
+    const pool = cat==='Todas' ? BANCO : BANCO.filter(p => p.cat===cat);
+    document.getElementById('disp-n').textContent = pool.length;
+  };
+  fw.appendChild(b);
+});
+
+function mezclar(a) { return [...a].sort(()=>Math.random()-.5); }
+function fmtT(s)    { return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
+
+function ir(id) {
+  document.querySelectorAll('.pant').forEach(p => p.classList.remove('on'));
+  document.getElementById('p-'+id).classList.add('on');
+  window.scrollTo(0,0);
+}
+
+function iniciar() {
+  clearInterval(tmr);
+  let pool = catActual==='Todas' ? BANCO : BANCO.filter(p => p.cat===catActual);
+  examen = mezclar(pool).slice(0,Math.min(20,pool.length)).map(x=>({
+    ...x, _ops: mezclar(x.ops.map((o,i)=>({t:o,orig:i})))
+  }));
+  idx=0; sel=null; conf=false; resps=[]; segs=0;
+  tmr = setInterval(()=>{ segs++; document.getElementById('crono').textContent=fmtT(segs); },1000);
+  ir('examen'); render();
+}
+
+function render() {
+  const p=examen[idx], total=examen.length;
+  document.getElementById('ex-prog').textContent=`${idx+1} / ${total}`;
+  document.getElementById('ex-cat').textContent=ICONS[p.cat]+' '+p.cat;
+  document.getElementById('q-num').textContent=`Pregunta ${idx+1}`;
+  document.getElementById('q-txt').textContent=p.p;
+  document.getElementById('barra').style.width=`${(idx/total)*100}%`;
+  sel=null; conf=false;
+
+  const ow=document.getElementById('opts');
+  ow.innerHTML='';
+  p._ops.forEach((op,i)=>{
+    const btn=document.createElement('button');
+    btn.className='opt';
+    btn.innerHTML=`<span class="bola">${String.fromCharCode(65+i)}</span><span class="opt-txt">${op.t}</span>`;
+    btn.onclick=()=>elegir(i);
+    ow.appendChild(btn);
+  });
+
+  document.getElementById('feedback').style.display='none';
+  document.getElementById('btn-conf').style.display='block';
+  document.getElementById('btn-conf').disabled=true;
+  document.getElementById('btn-sig').style.display='none';
+}
+
+function elegir(i) {
+  if(conf) return;
+  sel=i;
+  document.querySelectorAll('.opt').forEach((b,j)=>{
+    b.classList.toggle('sel',j===i);
+    b.querySelector('.bola').textContent=String.fromCharCode(65+j);
+  });
+  document.getElementById('btn-conf').disabled=false;
+}
+
+function confirmar() {
+  if(sel===null) return;
+  conf=true;
+  const p=examen[idx];
+  const ok=p._ops[sel].orig===p.c;
+  resps.push({p,sel,ok});
+
+  document.querySelectorAll('.opt').forEach((btn,i)=>{
+    btn.disabled=true;
+    const op=p._ops[i];
+    const bola=btn.querySelector('.bola');
+    if(op.orig===p.c){btn.classList.add('ok');bola.textContent='✓';}
+    else if(i===sel&&!ok){btn.classList.add('mal');bola.textContent='✗';}
+    btn.classList.remove('sel');
+  });
+
+  const fb=document.getElementById('feedback');
+  fb.style.display='block';
+  fb.className='feedback '+(ok?'ok':'mal');
+  fb.textContent=ok?'✅ ¡Correcto!':'❌ Incorrecto';
+
+  document.getElementById('btn-conf').style.display='none';
+  const bs=document.getElementById('btn-sig');
+  bs.style.display='block';
+  bs.textContent=idx+1<examen.length?'Siguiente pregunta →':'Ver resultados 🏁';
+}
+
+function siguiente() {
+  if(idx+1<examen.length){idx++;render();}
+  else{clearInterval(tmr);mostrarRes();}
+}
+
+function mostrarRes() {
+  const correctas=resps.filter(r=>r.ok).length;
+  const total=resps.length;
+  const porc=Math.round(correctas/total*100);
+  const ap=porc>=70;
+
+  document.getElementById('r-emoji').textContent=ap?'🎉':'📚';
+  document.getElementById('r-title').textContent=ap?'¡Felicitaciones!':'¡Sigue practicando!';
+  document.getElementById('r-sub').textContent=ap?'Has superado el simulacro':'Repasa el material e inténtalo de nuevo';
+  const badge=document.getElementById('r-badge');
+  badge.className='res-badge '+(ap?'ap':'no');
+  badge.textContent=ap?'APROBADO ✓':'NO APROBADO ✗';
+
+  document.getElementById('r-ok').textContent=correctas;
+  document.getElementById('r-mal').textContent=total-correctas;
+  document.getElementById('r-porc').textContent=porc+'%';
+  document.getElementById('r-porc').style.color=ap?'var(--verde)':'var(--rojo)';
+  document.getElementById('r-tiempo').textContent='⏱ '+fmtT(segs);
+  document.getElementById('r-estado').textContent=ap?'✓ Aprobado (≥70%)':'✗ Mínimo: 70%';
+
+  const br=document.getElementById('r-barra');
+  br.className='barra-res-fill '+(ap?'ap':'no');
+  setTimeout(()=>{br.style.width=porc+'%';},100);
+
+  const lista=document.getElementById('rev-list');
+  lista.innerHTML='';
+  resps.forEach((r,i)=>{
+    const opC=r.p._ops.find(o=>o.orig===r.p.c);
+    const div=document.createElement('div');
+    div.className='rev-item '+(r.ok?'ok':'mal');
+    div.innerHTML=`<div class="rev-p">${i+1}. ${r.p.p}</div><div class="rev-r">✅ ${opC.t}</div>`;
+    lista.appendChild(div);
+  });
+
+  ir('res');
+}
+</script>
+</body>
+</html>
