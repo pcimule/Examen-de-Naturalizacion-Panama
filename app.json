@@ -14,7 +14,7 @@
     "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.pcimule.examenpanama",
+      "bundleIdentifier": "com.naturalizacionpanama.app",
       "buildNumber": "1",
       "config": {
         "usesNonExemptEncryption": false
@@ -29,7 +29,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#003580"
       },
-      "package": "com.pcimule.examenpanama",
+      "package": "com.naturalizacionpanama.app",
       "versionCode": 1
     },
     "locales": { "es": "./es.json" }
