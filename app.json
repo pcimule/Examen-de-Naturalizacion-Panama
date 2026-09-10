@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Examen Naturalización Panamá",
+    "slug": "examen-naturalizacion-panama",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#003580"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pcimule.examenpanama",
+      "buildNumber": "1",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "CFBundleLocalizations": ["es"],
+        "CFBundleDevelopmentRegion": "es"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#003580"
+      },
+      "package": "com.pcimule.examenpanama",
+      "versionCode": 1
+    },
+    "locales": { "es": "./es.json" }
+  }
+}
