@@ -57,6 +57,20 @@ target 'ExamenNaturalizacinPanam' do
       :ccache_enabled => podfile_properties['apple.ccacheEnabled'] == 'true',
     )
 
+    # Workaround: react-native 0.74's generated "[CP-User] Generate Specs" (and
+    # similar) build phases run `/bin/sh -c "$WITH_ENVIRONMENT $SCRIPT_PHASES_SCRIPT"`
+    # unquoted, which breaks when the project path contains spaces (our repo lives
+    # under "Claude Proyects"). Quote both paths so the phase can find the scripts.
+    installer.pods_project.targets.each do |target|
+      target.build_phases.each do |phase|
+        next unless phase.respond_to?(:shell_script) && phase.shell_script
+        phase.shell_script = phase.shell_script.gsub(
+          '/bin/sh -c "$WITH_ENVIRONMENT $SCRIPT_PHASES_SCRIPT"',
+          '/bin/sh -c "\"$WITH_ENVIRONMENT\" \"$SCRIPT_PHASES_SCRIPT\""'
+        )
+      end
+    end
+
     # This is necessary for Xcode 14, because it signs resource bundles by default
     # when building for devices.
     installer.target_installation_results.pod_target_installation_results
