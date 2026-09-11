@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  SafeAreaView, StatusBar, Platform,
+  SafeAreaView, StatusBar, Platform, Alert,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BANCO } from './preguntas';
@@ -94,6 +94,16 @@ export default function App() {
       }));
     setPregs(p); setIdx(0); setSel(null); setConf(false);
     setResps([]); setSegs(0); setModo('examen');
+  }
+
+  function cancelarExamen() {
+    Alert.alert(t.cancelExamTitle, t.cancelExamMsg, [
+      { text: t.cancelExamNo, style: 'cancel' },
+      { text: t.cancelExamYes, style: 'destructive', onPress: () => {
+        clearInterval(tmr.current);
+        setModo('menu');
+      } },
+    ]);
   }
 
   function confirmar() {
@@ -207,6 +217,10 @@ export default function App() {
       <SafeAreaView style={st.safe}>
         <StatusBar barStyle="light-content" backgroundColor={C.azul} />
         <ScrollView contentContainerStyle={st.scroll}>
+
+          <TouchableOpacity onPress={cancelarExamen} style={st.btnCancelar} activeOpacity={0.7}>
+            <Text style={st.btnCancelarTxt}>✕ {t.cancelExam}</Text>
+          </TouchableOpacity>
 
           <View style={st.exHeader}>
             <View>
@@ -431,6 +445,13 @@ const st = StyleSheet.create({
     shadowOffset: { width: 0, height: 5 }, elevation: 5,
   },
   btnStartTxt: { color: 'white', fontSize: 16, fontWeight: '900' },
+
+  btnCancelar: {
+    alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12,
+    borderRadius: 20, borderWidth: 1.5, borderColor: '#cbd5e1',
+    backgroundColor: 'white', marginBottom: 10,
+  },
+  btnCancelarTxt: { fontSize: 12, fontWeight: '700', color: C.rojo },
 
   exHeader: {
     backgroundColor: C.azul, borderRadius: 14, padding: 16, marginBottom: 11,
