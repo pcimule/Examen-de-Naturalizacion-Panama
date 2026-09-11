@@ -218,10 +218,6 @@ export default function App() {
         <StatusBar barStyle="light-content" backgroundColor={C.azul} />
         <ScrollView contentContainerStyle={st.scroll}>
 
-          <TouchableOpacity onPress={cancelarExamen} style={st.btnCancelar} activeOpacity={0.7}>
-            <Text style={st.btnCancelarTxt}>✕ {t.cancelExam}</Text>
-          </TouchableOpacity>
-
           <View style={st.exHeader}>
             <View>
               <Text style={st.exLbl}>{t.progressLbl}</Text>
@@ -289,6 +285,10 @@ export default function App() {
               </Text>
             </TouchableOpacity>
           )}
+
+          <TouchableOpacity onPress={cancelarExamen} style={st.btnCancelar} activeOpacity={0.6}>
+            <Text style={st.btnCancelarTxt}>✕ {t.cancelExam}</Text>
+          </TouchableOpacity>
 
         </ScrollView>
       </SafeAreaView>
@@ -447,11 +447,10 @@ const st = StyleSheet.create({
   btnStartTxt: { color: 'white', fontSize: 16, fontWeight: '900' },
 
   btnCancelar: {
-    alignSelf: 'flex-start', paddingVertical: 6, paddingHorizontal: 12,
-    borderRadius: 20, borderWidth: 1.5, borderColor: '#cbd5e1',
-    backgroundColor: 'white', marginBottom: 10,
+    backgroundColor: 'white', borderWidth: 2, borderColor: C.borde,
+    borderRadius: 14, padding: 16, alignItems: 'center', marginTop: 9,
   },
-  btnCancelarTxt: { fontSize: 12, fontWeight: '700', color: C.rojo },
+  btnCancelarTxt: { fontSize: 15, fontWeight: '800', color: C.rojo },
 
   exHeader: {
     backgroundColor: C.azul, borderRadius: 14, padding: 16, marginBottom: 11,
