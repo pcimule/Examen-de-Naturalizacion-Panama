@@ -5,16 +5,7 @@ import {
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { BANCO } from './preguntas';
-
-const CATS = ['Todas', 'Organización Política', 'Geografía', 'Historia', 'Otros Aspectos', 'Símbolos e Himno'];
-const ICONS = {
-  'Todas': '🇵🇦',
-  'Organización Política': '⚖️',
-  'Geografía': '🗺️',
-  'Historia': '📜',
-  'Otros Aspectos': '🎭',
-  'Símbolos e Himno': '🎼',
-};
+import { LANGS, LANG_LABELS, LANG_FLAGS, CAT_META, I18N } from './i18n';
 
 const C = {
   azul: '#003580', azul2: '#0047b3', rojo: '#c0001b', rojo2: '#e6001f',
@@ -24,13 +15,17 @@ const C = {
 
 const PREGUNTAS_POR_EXAMEN = 50;
 const STORAGE_KEY = '@examen_panama_historial';
+const LANG_KEY = '@examen_panama_idioma';
+
+const ICONS = Object.fromEntries(CAT_META.map(c => [c.key, c.icon]));
 
 const shuffle = a => [...a].sort(() => Math.random() - 0.5);
 const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 export default function App() {
+  const [lang, setLang] = useState('es');
   const [modo, setModo] = useState('menu');
-  const [cat, setCat] = useState('Todas');
+  const [cat, setCat] = useState('todas');
   const [pregs, setPregs] = useState([]);
   const [idx, setIdx] = useState(0);
   const [sel, setSel] = useState(null);
@@ -40,16 +35,30 @@ export default function App() {
   const [historial, setHistorial] = useState([]);
   const tmr = useRef(null);
 
-  const pool = cat === 'Todas' ? BANCO : BANCO.filter(p => p.cat === cat);
+  const t = I18N[lang];
+  const CATS = CAT_META.map(c => ({ key: c.key, icon: c.icon, label: t.catNames[c.key] }));
+  const pool = cat === 'todas' ? BANCO : BANCO.filter(p => p.catKey === cat);
 
-  // ── Persistencia nativa del historial ──────────────────────
-  useEffect(() => { cargarHistorial(); }, []);
+  // ── Persistencia nativa: historial e idioma ────────────────
+  useEffect(() => { cargarHistorial(); cargarIdioma(); }, []);
 
   async function cargarHistorial() {
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEY);
       if (raw) setHistorial(JSON.parse(raw));
     } catch (e) { /* primera vez */ }
+  }
+
+  async function cargarIdioma() {
+    try {
+      const raw = await AsyncStorage.getItem(LANG_KEY);
+      if (raw && LANGS.includes(raw)) setLang(raw);
+    } catch (e) { /* usa idioma por defecto */ }
+  }
+
+  async function cambiarIdioma(nuevo) {
+    setLang(nuevo);
+    try { await AsyncStorage.setItem(LANG_KEY, nuevo); } catch (e) { /* no bloquea la app */ }
   }
 
   async function guardarIntento(porc, correctas, total, tiempo) {
@@ -77,7 +86,12 @@ export default function App() {
   function iniciar() {
     const p = shuffle(pool)
       .slice(0, Math.min(PREGUNTAS_POR_EXAMEN, pool.length))
-      .map(x => ({ ...x, _ops: shuffle(x.ops.map((o, i) => ({ t: o, orig: i }))) }));
+      .map(x => ({
+        catKey: x.catKey,
+        c: x.c,
+        p: x[lang].p,
+        _ops: shuffle(x[lang].ops.map((o, i) => ({ t: o, orig: i }))),
+      }));
     setPregs(p); setIdx(0); setSel(null); setConf(false);
     setResps([]); setSegs(0); setModo('examen');
   }
@@ -106,57 +120,72 @@ export default function App() {
   const ap = porc >= 70;
   const mejorPuntaje = historial.length ? Math.max(...historial.map(h => h.porcentaje)) : null;
 
+  const SelectorIdioma = () => (
+    <View style={st.langRow}>
+      {LANGS.map(l => (
+        <TouchableOpacity key={l} onPress={() => cambiarIdioma(l)}
+          style={[st.langChip, lang === l && st.langChipOn]} activeOpacity={0.7}>
+          <Text style={[st.langChipTxt, lang === l && st.langChipTxtOn]}>
+            {LANG_FLAGS[l]} {l.toUpperCase()}
+          </Text>
+        </TouchableOpacity>
+      ))}
+    </View>
+  );
+
   // ═══ MENÚ ═══════════════════════════════════════════════════
   if (modo === 'menu') return (
     <SafeAreaView style={st.safe}>
       <StatusBar barStyle="light-content" backgroundColor={C.azul} />
       <ScrollView contentContainerStyle={st.scroll}>
 
+        <SelectorIdioma />
+
         <View style={st.hero}>
           <Text style={st.heroFlag}>🇵🇦</Text>
-          <Text style={st.heroTitle}>Simulador de Examen</Text>
-          <Text style={st.heroSub}>Aspirantes a la Nacionalidad Panameña</Text>
+          <Text style={st.heroTitle}>{t.heroTitle}</Text>
+          <Text style={st.heroSub}>{t.heroSub}</Text>
         </View>
 
         <View style={st.grid2}>
-          <StatCard icon="📝" n={BANCO.length} label="Total preguntas" />
-          <StatCard icon="🎯" n={PREGUNTAS_POR_EXAMEN} label="Por examen" />
-          <StatCard icon="📂" n={CATS.length - 1} label="Categorías" />
-          <StatCard icon="✅" n={pool.length} label="Disponibles" />
+          <StatCard icon="📝" n={BANCO.length} label={t.statTotal} />
+          <StatCard icon="🎯" n={PREGUNTAS_POR_EXAMEN} label={t.statPerExam} />
+          <StatCard icon="📂" n={CATS.length - 1} label={t.statCats} />
+          <StatCard icon="✅" n={pool.length} label={t.statAvail} />
         </View>
 
         {historial.length > 0 && (
           <View style={st.card}>
-            <Text style={st.cardTitle}>📊 Tu progreso</Text>
+            <Text style={st.cardTitle}>{t.progressTitle}</Text>
             <View style={st.progRow}>
               <View style={st.progItem}>
                 <Text style={[st.progN, { color: C.azul }]}>{historial.length}</Text>
-                <Text style={st.progL}>Exámenes</Text>
+                <Text style={st.progL}>{t.progExams}</Text>
               </View>
               <View style={st.progItem}>
                 <Text style={[st.progN, { color: mejorPuntaje >= 70 ? C.verde : C.rojo }]}>
                   {mejorPuntaje}%
                 </Text>
-                <Text style={st.progL}>Mejor puntaje</Text>
+                <Text style={st.progL}>{t.progBest}</Text>
               </View>
               <View style={st.progItem}>
                 <Text style={[st.progN, { color: C.azul }]}>
                   {Math.round(historial.reduce((a, h) => a + h.porcentaje, 0) / historial.length)}%
                 </Text>
-                <Text style={st.progL}>Promedio</Text>
+                <Text style={st.progL}>{t.progAvg}</Text>
               </View>
             </View>
           </View>
         )}
 
         <View style={st.card}>
-          <Text style={st.cardTitle}>📚 Filtrar por categoría</Text>
+          <Text style={st.cardTitle}>{t.filterTitle}</Text>
           <View style={st.chips}>
             {CATS.map(c => (
-              <TouchableOpacity key={c} onPress={() => setCat(c)}
-                style={[st.chip, cat === c && st.chipOn]} activeOpacity={0.7}>
-                <Text style={[st.chipTxt, cat === c && st.chipTxtOn]}>
-                  {ICONS[c]} {c}
+              <TouchableOpacity key={c.key} onPress={() => setCat(c.key)}
+                style={[st.chip, cat === c.key && st.chipOn]} activeOpacity={0.7}>
+                <Text style={[st.chipTxt, cat === c.key && st.chipTxtOn]}>
+                  {c.icon} {c.label}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -164,7 +193,7 @@ export default function App() {
         </View>
 
         <TouchableOpacity onPress={iniciar} style={st.btnStart} activeOpacity={0.85}>
-          <Text style={st.btnStartTxt}>🚀  Iniciar Examen</Text>
+          <Text style={st.btnStartTxt}>{t.startBtn}</Text>
         </TouchableOpacity>
 
       </ScrollView>
@@ -181,14 +210,14 @@ export default function App() {
 
           <View style={st.exHeader}>
             <View>
-              <Text style={st.exLbl}>PROGRESO</Text>
+              <Text style={st.exLbl}>{t.progressLbl}</Text>
               <Text style={st.exVal}>{idx + 1} / {pregs.length}</Text>
               <View style={st.exCat}>
-                <Text style={st.exCatTxt}>{ICONS[p.cat]} {p.cat}</Text>
+                <Text style={st.exCatTxt}>{ICONS[p.catKey]} {t.catNames[p.catKey]}</Text>
               </View>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={st.exLbl}>TIEMPO</Text>
+              <Text style={st.exLbl}>{t.timeLbl}</Text>
               <Text style={st.crono}>⏱ {fmt(segs)}</Text>
             </View>
           </View>
@@ -198,7 +227,7 @@ export default function App() {
           </View>
 
           <View style={st.qCard}>
-            <Text style={st.qNum}>PREGUNTA {idx + 1}</Text>
+            <Text style={st.qNum}>{t.questionLbl(idx + 1)}</Text>
             <Text style={st.qTxt}>{p.p}</Text>
           </View>
 
@@ -227,7 +256,7 @@ export default function App() {
           {conf && (
             <View style={[st.feedback, resps[resps.length - 1]?.ok ? st.fbOk : st.fbMal]}>
               <Text style={[st.fbTxt, { color: resps[resps.length - 1]?.ok ? C.verde : C.rojo }]}>
-                {resps[resps.length - 1]?.ok ? '✅ ¡Correcto!' : '❌ Incorrecto'}
+                {resps[resps.length - 1]?.ok ? t.correctFb : t.incorrectFb}
               </Text>
             </View>
           )}
@@ -236,13 +265,13 @@ export default function App() {
             <TouchableOpacity onPress={confirmar} disabled={sel === null}
               style={[st.btnConf, sel === null && st.btnDisabled]} activeOpacity={0.85}>
               <Text style={[st.btnConfTxt, sel === null && { color: '#94a3b8' }]}>
-                Confirmar respuesta
+                {t.confirmBtn}
               </Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity onPress={siguiente} style={st.btnSig} activeOpacity={0.85}>
               <Text style={st.btnSigTxt}>
-                {idx + 1 < pregs.length ? 'Siguiente pregunta →' : 'Ver resultados 🏁'}
+                {idx + 1 < pregs.length ? t.nextBtn : t.resultsBtn}
               </Text>
             </TouchableOpacity>
           )}
@@ -260,28 +289,28 @@ export default function App() {
 
         <View style={st.hero}>
           <Text style={st.heroFlag}>{ap ? '🎉' : '📚'}</Text>
-          <Text style={st.heroTitle}>{ap ? '¡Felicitaciones!' : '¡Sigue practicando!'}</Text>
+          <Text style={st.heroTitle}>{ap ? t.congratsTitle : t.keepGoingTitle}</Text>
           <Text style={st.heroSub}>
-            {ap ? 'Has superado el simulacro' : 'Repasa el material e inténtalo de nuevo'}
+            {ap ? t.congratsSub : t.keepGoingSub}
           </Text>
           <View style={[st.badge, { backgroundColor: ap ? 'rgba(21,128,61,.25)' : 'rgba(192,0,27,.25)' }]}>
             <Text style={[st.badgeTxt, { color: ap ? '#bbf7d0' : '#fecaca' }]}>
-              {ap ? 'APROBADO ✓' : 'NO APROBADO ✗'}
+              {ap ? t.approved : t.notApproved}
             </Text>
           </View>
         </View>
 
         <View style={st.grid3}>
-          <ResCard n={correctas} label="Correctas" color={C.verde} />
-          <ResCard n={pregs.length - correctas} label="Incorrectas" color={C.rojo} />
-          <ResCard n={`${porc}%`} label="Calificación" color={ap ? C.verde : C.rojo} />
+          <ResCard n={correctas} label={t.correctas} color={C.verde} />
+          <ResCard n={pregs.length - correctas} label={t.incorrectas} color={C.rojo} />
+          <ResCard n={`${porc}%`} label={t.calificacion} color={ap ? C.verde : C.rojo} />
         </View>
 
         <View style={st.card}>
           <View style={st.rowBetween}>
             <Text style={st.tiempoTxt}>⏱ {fmt(segs)}</Text>
             <Text style={[st.tiempoTxt, { color: ap ? C.verde : C.rojo }]}>
-              {ap ? '✓ Aprobado (≥70%)' : '✗ Mínimo: 70%'}
+              {ap ? t.approvedInline : t.minInline}
             </Text>
           </View>
           <View style={st.barraRes}>
@@ -293,7 +322,7 @@ export default function App() {
         </View>
 
         <View style={st.card}>
-          <Text style={st.cardTitle}>📋 Revisión de respuestas</Text>
+          <Text style={st.cardTitle}>{t.reviewTitle}</Text>
           {resps.map((r, i) => {
             const opC = r.p._ops.find(o => o.orig === r.p.c);
             return (
@@ -310,10 +339,10 @@ export default function App() {
 
         <View style={st.rowGap}>
           <TouchableOpacity onPress={() => setModo('menu')} style={st.btnMenu} activeOpacity={0.8}>
-            <Text style={st.btnMenuTxt}>🏠 Menú</Text>
+            <Text style={st.btnMenuTxt}>{t.menuBtn}</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={iniciar} style={st.btnNuevo} activeOpacity={0.85}>
-            <Text style={st.btnNuevoTxt}>🔄 Nuevo</Text>
+            <Text style={st.btnNuevoTxt}>{t.newBtn}</Text>
           </TouchableOpacity>
         </View>
 
@@ -342,6 +371,15 @@ const ResCard = ({ n, label, color }) => (
 const st = StyleSheet.create({
   safe: { flex: 1, backgroundColor: C.claro },
   scroll: { padding: 16, paddingBottom: 40 },
+
+  langRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 12 },
+  langChip: {
+    paddingVertical: 6, paddingHorizontal: 14, borderRadius: 20,
+    borderWidth: 2, borderColor: C.borde, backgroundColor: 'white',
+  },
+  langChipOn: { backgroundColor: C.azul, borderColor: C.azul },
+  langChipTxt: { fontSize: 12, fontWeight: '800', color: '#475569' },
+  langChipTxtOn: { color: 'white' },
 
   hero: {
     backgroundColor: C.azul, borderRadius: 20, padding: 26,

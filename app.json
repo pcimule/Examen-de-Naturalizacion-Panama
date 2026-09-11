@@ -20,7 +20,7 @@
         "usesNonExemptEncryption": false
       },
       "infoPlist": {
-        "CFBundleLocalizations": ["es"],
+        "CFBundleLocalizations": ["es", "en", "pt-BR"],
         "CFBundleDevelopmentRegion": "es"
       }
     },
@@ -32,6 +32,6 @@
       "package": "com.naturalizacionpanama.app",
       "versionCode": 1
     },
-    "locales": { "es": "./es.json" }
+    "locales": { "es": "./es.json", "en": "./en.json", "pt": "./pt.json" }
   }
 }
